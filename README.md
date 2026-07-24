@@ -10,7 +10,7 @@ The toolkit supports both **electron volts (eV)** and **Hartree** units, making 
 
 **Application**
 
-https://quantum-descriptor-toolkit-rhnxw8252wemzuxida72kr.streamlit.app/
+https://quantum-descriptor-toolkit.streamlit.app/ 
 
 ---
 
