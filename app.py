@@ -1,16 +1,25 @@
 # ==========================================================
-# Quantum Descriptor Toolkit
+# Quantum Descriptor Toolkit (QDT)
 # app.py
-# Part 1 of 3
+#
+# Author: Sania Ismaeel
+# Version: 2.0
 # ==========================================================
 
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 
 from calculators.descriptors import (
     calculate_descriptors,
     hartree_to_ev
+)
+
+from calculators.descriptor_info import (
+    DESCRIPTOR_INFO
+)
+
+from calculators.bibliography import (
+    BIBLIOGRAPHY
 )
 
 # ==========================================================
@@ -19,10 +28,26 @@ from calculators.descriptors import (
 
 st.set_page_config(
     page_title="Quantum Descriptor Toolkit",
-    page_icon="⚛️",
+    page_icon="assets/logo.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# ==========================================================
+# SESSION STATE
+# ==========================================================
+
+if "descriptors" not in st.session_state:
+    st.session_state.descriptors = None
+
+if "summary" not in st.session_state:
+    st.session_state.summary = None
+
+if "result_df" not in st.session_state:
+    st.session_state.result_df = None
+
+if "compound" not in st.session_state:
+    st.session_state.compound = ""
 
 # ==========================================================
 # CUSTOM CSS
@@ -45,13 +70,6 @@ st.markdown(
     color:gray;
 }
 
-.card{
-    background-color:#f8f9fa;
-    padding:18px;
-    border-radius:10px;
-    border:1px solid #dddddd;
-}
-
 .footer{
     text-align:center;
     color:gray;
@@ -60,22 +78,25 @@ st.markdown(
 
 </style>
 """,
-    unsafe_allow_html=True,
+    unsafe_allow_html=True
 )
 
 # ==========================================================
 # SIDEBAR
 # ==========================================================
 
-st.sidebar.title("⚛️ Quantum Descriptor Toolkit")
+st.sidebar.image(
+    "assets/logo.png",
+    width=180
+)
+
+st.sidebar.title("Quantum Descriptor Toolkit")
 
 st.sidebar.markdown("---")
 
-st.sidebar.markdown("### Navigation")
-
 page = st.sidebar.radio(
 
-    "",
+    "Navigation",
 
     [
 
@@ -97,8 +118,9 @@ page = st.sidebar.radio(
 
 st.sidebar.markdown("---")
 
-st.sidebar.info(
+st.sidebar.success("Version 2.0")
 
+st.sidebar.info(
 """
 Developer
 
@@ -109,10 +131,7 @@ Computational Chemistry
 Conceptual Density Functional Theory
 
 Organic Electronics
-
-Version 1.0
 """
-
 )
 
 # ==========================================================
@@ -137,74 +156,54 @@ if page == "🏠 Home":
 
     with col1:
 
-        st.markdown("## Features")
+        st.subheader("Features")
 
         st.markdown("""
 
-✅ HOMO/LUMO Calculator
-
-✅ eV & Hartree Support
-
-✅ Conceptual DFT Descriptors
-
-✅ Interactive Tables
-
-✅ Batch Processing
-
-✅ Plotly Visualization
-
-✅ Excel Export
-
-✅ CSV Export
+- HOMO/LUMO Calculator
+- eV & Hartree Support
+- 14 Conceptual DFT Descriptors
+- Scientific Interpretation
+- Batch Processing
+- Interactive Visualization
+- CSV Export
 
 """)
 
     with col2:
 
-        st.markdown("## Included Descriptors")
+        st.subheader("Included Descriptors")
 
         st.markdown("""
 
 - HOMO
-
 - LUMO
-
 - Energy Gap
-
 - Ionization Potential
-
 - Electron Affinity
-
 - Chemical Potential
-
 - Electronegativity
-
 - Global Hardness
-
 - Global Softness
-
 - Electrophilicity
-
 - Maximum Charge Transfer
-
-- Electron Donating Power
-
 - Electron Accepting Power
+- Electron Donating Power
+- Net Electrophilicity
 
 """)
 
     st.divider()
 
     st.success(
-
 """
-Welcome!
+Welcome to the Quantum Descriptor Toolkit.
 
-Use the navigation panel on the left to access the calculator,
-visualization tools, descriptor guide, and batch processing.
+Use the navigation panel to calculate descriptors,
+process multiple molecules, visualize results,
+and explore the scientific meaning of each descriptor.
 """
-
-)
+    )
 
 # ==========================================================
 # SINGLE MOLECULE
@@ -215,7 +214,7 @@ elif page == "🧪 Single Molecule":
     st.title("🧪 Single Molecule Calculator")
 
     st.write(
-        "Calculate conceptual DFT descriptors directly from HOMO and LUMO energies."
+        "Calculate Conceptual DFT descriptors from HOMO and LUMO energies."
     )
 
     st.divider()
@@ -239,6 +238,8 @@ elif page == "🧪 Single Molecule":
     compound = st.text_input(
 
         "Compound Name",
+
+        value=st.session_state.compound,
 
         placeholder="Example: D1"
 
@@ -273,247 +274,219 @@ elif page == "🧪 Single Molecule":
         use_container_width=True
 
     )
-
-    # ---------- PART 2 CONTINUES HERE ----------
         # ======================================================
     # CALCULATE
     # ======================================================
 
     if calculate:
 
-        # ------------------------------------------
-        # Convert Hartree to eV
-        # ------------------------------------------
-
         if unit == "Hartree":
 
             homo = hartree_to_ev(homo)
             lumo = hartree_to_ev(lumo)
 
-        # ------------------------------------------
-        # Validation
-        # ------------------------------------------
-
         if homo >= lumo:
 
             st.error(
-                "❌ HOMO must be lower than LUMO.\n\n"
-                "Example:\n"
-                "HOMO = -5.20 eV\n"
-                "LUMO = -2.60 eV"
+                "HOMO energy must be lower than LUMO energy."
             )
 
         else:
 
-            output = calculate_descriptors(homo, lumo)
+            output = calculate_descriptors(
+                homo,
+                lumo
+            )
 
-            descriptors = output["descriptors"]
-
-            summary = output["summary"]
+            st.session_state.descriptors = output["descriptors"]
+            st.session_state.summary = output["summary"]
+            st.session_state.compound = compound
 
             st.success("Descriptors calculated successfully.")
 
-            st.divider()
+    # ======================================================
+    # DISPLAY RESULTS
+    # ======================================================
 
-            # ==================================================
-            # METRIC CARDS
-            # ==================================================
+    if st.session_state.descriptors is not None:
 
-            c1, c2, c3 = st.columns(3)
+        descriptors = st.session_state.descriptors
+        summary = st.session_state.summary
+        compound = st.session_state.compound
 
-            gap = lumo - homo
+        st.divider()
 
-            with c1:
+        # ==================================================
+        # METRIC CARDS
+        # ==================================================
 
-                st.metric(
+        homo_value = None
+        lumo_value = None
+        gap_value = None
 
-                    label="HOMO",
+        for item in descriptors:
 
-                    value=f"{homo:.4f} eV"
+            if item["Symbol"] == "HOMO":
+                homo_value = item["Value"]
 
+            elif item["Symbol"] == "LUMO":
+                lumo_value = item["Value"]
+
+            elif item["Symbol"] == "Eg":
+                gap_value = item["Value"]
+
+        c1, c2, c3 = st.columns(3)
+
+        with c1:
+
+            st.metric(
+                "HOMO",
+                f"{float(homo_value):.4f} eV"
+            )
+
+        with c2:
+
+            st.metric(
+                "LUMO",
+                f"{float(lumo_value):.4f} eV"
+            )
+
+        with c3:
+
+            st.metric(
+                "Energy Gap",
+                f"{float(gap_value):.4f} eV"
+            )
+
+        st.divider()
+
+        # ==================================================
+        # RESULTS TABLE
+        # ==================================================
+
+        if compound.strip():
+
+            st.subheader(f"Results : {compound}")
+
+        else:
+
+            st.subheader("Calculated Descriptors")
+
+        df = pd.DataFrame(descriptors)
+
+        st.dataframe(
+
+            df,
+
+            use_container_width=True,
+
+            hide_index=True
+
+        )
+
+        st.divider()
+                # ==================================================
+        # SCIENTIFIC INTERPRETATION
+        # ==================================================
+
+        st.subheader("📚 Scientific Interpretation")
+
+        descriptor_names = {
+            item["Descriptor"]: item["Symbol"]
+            for item in descriptors
+        }
+
+        selected = st.selectbox(
+            "Select a Descriptor",
+            list(descriptor_names.keys()),
+            key="descriptor_select"
+        )
+
+        symbol = descriptor_names[selected]
+
+        info = DESCRIPTOR_INFO[symbol]
+
+        reference = BIBLIOGRAPHY[
+            info["reference_id"]
+        ]
+
+        st.markdown(f"## {info['name']}")
+
+        st.markdown(
+            f"**Symbol:** {info['symbol']}"
+        )
+
+        st.markdown(
+            f"**Equation:** `{info['equation']}`"
+        )
+
+        st.markdown(
+            f"**Unit:** {info['unit']}"
+        )
+
+        st.divider()
+
+        with st.expander(
+            "📖 Definition",
+            expanded=True
+        ):
+
+            st.write(
+                info["definition"]
+            )
+
+        with st.expander(
+            "💡 General Interpretation"
+        ):
+
+            st.write(
+                info["interpretation"]
+            )
+
+        with st.expander(
+            "📝 Remarks"
+        ):
+
+            st.write(
+                info["remarks"]
+            )
+
+        with st.expander(
+            "📚 Primary Reference"
+        ):
+
+            st.write(
+                reference["authors"]
+            )
+
+            st.write(
+                reference["title"]
+            )
+
+            if reference["volume"]:
+
+                st.write(
+                    f"{reference['journal']}, "
+                    f"{reference['volume']}, "
+                    f"{reference['pages']} "
+                    f"({reference['year']})"
                 )
-
-            with c2:
-
-                st.metric(
-
-                    label="LUMO",
-
-                    value=f"{lumo:.4f} eV"
-
-                )
-
-            with c3:
-
-                st.metric(
-
-                    label="Band Gap",
-
-                    value=f"{gap:.4f} eV"
-
-                )
-
-            st.divider()
-
-            # ==================================================
-            # RESULTS TABLE
-            # ==================================================
-
-            if compound.strip():
-
-                st.subheader(f"Results : {compound}")
 
             else:
 
-                st.subheader("Calculated Descriptors")
-
-            df = pd.DataFrame(descriptors)
-
-            st.dataframe(
-
-                df,
-
-                use_container_width=True,
-
-                hide_index=True
-
-            )
-
-            st.divider()
-
-            # ==================================================
-            # SCIENTIFIC INTERPRETATION
-            # ==================================================
-
-            st.subheader("Scientific Interpretation")
-
-            col1, col2 = st.columns(2)
-
-            with col1:
-
-                st.info(
-
-f"""
-### Band Gap
-
-**{summary['Band Gap Interpretation']}**
-
-Energy Gap = **{gap:.4f} eV**
-
-The band gap determines the electronic excitation energy of the molecule.
-"""
-
+                st.write(
+                    f"{reference['journal']} "
+                    f"({reference['year']})"
                 )
 
-                st.info(
+            if reference["doi"]:
 
-f"""
-### Global Hardness
-
-**{summary['Hardness Interpretation']}**
-
-Hardness reflects molecular stability and resistance toward charge transfer.
-"""
-
+                st.code(
+                    reference["doi"]
                 )
 
-            with col2:
+        st.divider()
 
-                st.info(
-
-f"""
-### Electrophilicity
-
-**{summary['Electrophilicity Interpretation']}**
-
-Electrophilicity measures the tendency of a molecule to accept electrons.
-"""
-
-                )
-
-                st.info(
-
-"""
-### Notes
-
-All descriptors are calculated using
-Conceptual Density Functional Theory (CDFT)
-based on Koopmans' approximation.
-"""
-
-                )
-
-            st.divider()
-
-            # ==================================================
-            # BAR CHART
-            # ==================================================
-
-            st.subheader("Descriptor Visualization")
-
-            chart_df = df.copy()
-
-            chart_df = chart_df.dropna()
-
-            fig = px.bar(
-
-                chart_df,
-
-                x="Symbol",
-
-                y="Value",
-
-                color="Descriptor",
-
-                text="Value",
-
-                height=500
-
-            )
-
-            fig.update_layout(
-
-                xaxis_title="Descriptor",
-
-                yaxis_title="Value",
-
-                showlegend=False
-
-            )
-
-            st.plotly_chart(
-
-                fig,
-
-                use_container_width=True
-
-            )
-
-            st.divider()
-
-            # ==================================================
-            # DOWNLOAD CSV
-            # ==================================================
-
-            csv = df.to_csv(index=False)
-
-            st.download_button(
-
-                label="⬇ Download Results (CSV)",
-
-                data=csv,
-
-                file_name="Quantum_Descriptors.csv",
-
-                mime="text/csv",
-
-                use_container_width=True
-
-            )
-
-# ==========================================================
-# ---------- PART 3 CONTINUES BELOW ------------------------
-# ==========================================================
 # ==========================================================
 # BATCH CALCULATOR
 # ==========================================================
@@ -523,74 +496,121 @@ elif page == "📂 Batch Calculator":
     st.title("📂 Batch Descriptor Calculator")
 
     st.write(
-        """
-        Upload a CSV or Excel file containing HOMO and LUMO energies.
-        The application will calculate all conceptual DFT descriptors.
-        """
+        "Upload a CSV or Excel file containing HOMO and LUMO energies."
     )
 
     uploaded_file = st.file_uploader(
+
         "Upload CSV or Excel File",
-        type=["csv", "xlsx"]
+
+        type=[
+            "csv",
+            "xlsx"
+        ]
+
     )
 
     if uploaded_file is not None:
 
         if uploaded_file.name.endswith(".csv"):
-            data = pd.read_csv(uploaded_file)
+
+            data = pd.read_csv(
+                uploaded_file
+            )
+
         else:
-            data = pd.read_excel(uploaded_file)
+
+            data = pd.read_excel(
+                uploaded_file
+            )
 
         st.subheader("Input Data")
 
         st.dataframe(
+
             data,
+
             use_container_width=True,
+
             hide_index=True
+
         )
 
-        required = {"HOMO", "LUMO"}
+        required = {
+            "HOMO",
+            "LUMO"
+        }
 
-        if required.issubset(data.columns):
+        if required.issubset(
+            data.columns
+        ):
 
             results = []
 
             for _, row in data.iterrows():
 
                 output = calculate_descriptors(
+
                     row["HOMO"],
+
                     row["LUMO"]
+
                 )
 
                 descriptor_values = {
+
                     item["Symbol"]: item["Value"]
+
                     for item in output["descriptors"]
+
                 }
 
                 result = row.to_dict()
 
-                result.update(descriptor_values)
+                result.update(
+                    descriptor_values
+                )
 
-                results.append(result)
+                results.append(
+                    result
+                )
 
-            result_df = pd.DataFrame(results)
-
-            st.subheader("Calculated Results")
-
-            st.dataframe(
-                result_df,
-                use_container_width=True,
-                hide_index=True
+            result_df = pd.DataFrame(
+                results
             )
 
-            csv = result_df.to_csv(index=False)
+            st.session_state.result_df = result_df
+
+            st.subheader(
+                "Calculated Results"
+            )
+
+            st.dataframe(
+
+                result_df,
+
+                use_container_width=True,
+
+                hide_index=True
+
+            )
+
+            csv = result_df.to_csv(
+                index=False
+            )
 
             st.download_button(
+
                 "⬇ Download Results (CSV)",
+
                 csv,
+
                 file_name="Batch_Quantum_Descriptors.csv",
+
                 mime="text/csv",
+
                 use_container_width=True
+
             )
 
         else:
@@ -598,33 +618,32 @@ elif page == "📂 Batch Calculator":
             st.error(
                 "Input file must contain HOMO and LUMO columns."
             )
-
-# ==========================================================
+            # ==========================================================
 # VISUALIZATION
 # ==========================================================
 
 elif page == "📊 Visualization":
 
-    st.title("📊 Visualization")
+    st.title("📊 Publication Figure Studio")
 
-    st.info(
-        """
-        Visualization of batch data will be available
-        after uploading a dataset.
+    if st.session_state.result_df is None:
 
-        Planned plots:
+        st.warning(
+            """
+No batch calculation results found.
 
-        • HOMO vs LUMO
+Please go to **Batch Calculator**, upload a dataset,
+and calculate descriptors first.
+"""
+        )
 
-        • Band Gap Distribution
+    else:
 
-        • Hardness Distribution
+        from calculators.figure_studio import publication_figure_studio
 
-        • Electrophilicity Distribution
-
-        • Correlation Heatmap
-        """
-    )
+        publication_figure_studio(
+            st.session_state.result_df
+        )
 
 # ==========================================================
 # DESCRIPTOR GUIDE
@@ -634,91 +653,36 @@ elif page == "📘 Descriptor Guide":
 
     st.title("📘 Descriptor Guide")
 
-    guide = pd.DataFrame({
+    st.write(
+        """
+This guide summarizes all Conceptual DFT descriptors
+implemented in the Quantum Descriptor Toolkit.
+"""
+    )
 
-        "Descriptor":[
+    descriptor_table = []
 
-            "Energy Gap",
+    for symbol, info in DESCRIPTOR_INFO.items():
 
-            "Ionization Potential",
+        descriptor_table.append({
 
-            "Electron Affinity",
+            "Descriptor": info["name"],
 
-            "Chemical Potential",
+            "Symbol": info["symbol"],
 
-            "Electronegativity",
+            "Equation": info["equation"],
 
-            "Global Hardness",
+            "Unit": info["unit"]
 
-            "Global Softness",
+        })
 
-            "Electrophilicity",
-
-            "Maximum Charge Transfer",
-
-            "Electron Accepting Power",
-
-            "Electron Donating Power"
-
-        ],
-
-        "Formula":[
-
-            "LUMO − HOMO",
-
-            "−HOMO",
-
-            "−LUMO",
-
-            "(HOMO+LUMO)/2",
-
-            "−μ",
-
-            "(LUMO−HOMO)/2",
-
-            "1/(2η)",
-
-            "μ²/(2η)",
-
-            "−μ/η",
-
-            "(IP+3EA)² / 16(IP−EA)",
-
-            "(3IP+EA)² / 16(IP−EA)"
-
-        ],
-
-        "Units":[
-
-            "eV",
-
-            "eV",
-
-            "eV",
-
-            "eV",
-
-            "eV",
-
-            "eV",
-
-            "eV⁻¹",
-
-            "eV",
-
-            "-",
-
-            "eV",
-
-            "eV"
-
-        ]
-
-    })
+    guide_df = pd.DataFrame(
+        descriptor_table
+    )
 
     st.dataframe(
 
-        guide,
+        guide_df,
 
         use_container_width=True,
 
@@ -726,7 +690,90 @@ elif page == "📘 Descriptor Guide":
 
     )
 
-# ==========================================================
+    st.divider()
+
+    st.subheader("Scientific Definitions")
+
+    for symbol, info in DESCRIPTOR_INFO.items():
+
+        with st.expander(
+
+            f"{info['name']} ({info['symbol']})"
+
+        ):
+
+            st.markdown(
+                f"**Equation:** `{info['equation']}`"
+            )
+
+            st.markdown(
+                f"**Unit:** {info['unit']}"
+            )
+
+            st.markdown("**Definition**")
+
+            st.write(
+                info["definition"]
+            )
+
+            st.markdown("**Interpretation**")
+
+            st.write(
+                info["interpretation"]
+            )
+
+            st.markdown("**Remarks**")
+
+            st.write(
+                info["remarks"]
+            )
+
+            reference = BIBLIOGRAPHY[
+                info["reference_id"]
+            ]
+
+            st.markdown(
+                "**Primary Reference**"
+            )
+
+            st.write(
+                reference["authors"]
+            )
+
+            st.write(
+                reference["title"]
+            )
+
+            if reference["volume"]:
+
+                st.write(
+
+                    f"{reference['journal']}, "
+
+                    f"{reference['volume']}, "
+
+                    f"{reference['pages']} "
+
+                    f"({reference['year']})"
+
+                )
+
+            else:
+
+                st.write(
+
+                    f"{reference['journal']} "
+
+                    f"({reference['year']})"
+
+                )
+
+            if reference["doi"]:
+
+                st.code(
+                    reference["doi"]
+                )
+                # ==========================================================
 # ABOUT
 # ==========================================================
 
@@ -736,39 +783,90 @@ elif page == "ℹ️ About":
 
     st.markdown("""
 
-## Quantum Descriptor Toolkit
+# Quantum Descriptor Toolkit (QDT)
 
-A Python application developed for calculating
+The **Quantum Descriptor Toolkit (QDT)** is an open-source
+Python application developed for calculating
 Conceptual Density Functional Theory (CDFT)
-descriptors from HOMO and LUMO energies.
+descriptors directly from HOMO and LUMO energies.
+
+The toolkit is intended for researchers working in
+
+- Computational Chemistry
+- Organic Electronics
+- Materials Science
+- Medicinal Chemistry
+- Molecular Electronics
+- Catalysis
+- Machine Learning for Chemistry
 
 ---
 
-### Features
+## Current Features
 
-- HOMO/LUMO Calculator
-- eV and Hartree Conversion
-- Conceptual DFT Descriptors
-- Batch Processing
-- Interactive Visualization
-- CSV Export
+✅ HOMO/LUMO Calculator
+
+✅ Hartree ↔ eV Conversion
+
+✅ 14 Conceptual DFT Descriptors
+
+✅ Scientific Interpretation
+
+✅ Descriptor Encyclopedia
+
+✅ Batch Calculator
+
+✅ Publication Figure Studio
+
+✅ CSV Export
+
+✅ Interactive Tables
 
 ---
 
-### Developed By
+## Figure Studio
+
+The Publication Figure Studio allows users to create
+publication-quality figures with
+
+- Multiple journal fonts
+- Adjustable figure size
+- Editable Plotly figures
+- Scatter plots
+- Histograms
+- Bar plots
+- Box plots
+- PNG export
+- HTML export
+
+---
+
+## Developed By
 
 **Sania Ismaeel**
 
-Computational Chemistry
+PhD (Computational Chemistry)
 
 ---
 
-### Built With
+## Built With
 
 - Python
 - Streamlit
 - Pandas
 - Plotly
+
+---
+
+## License
+
+MIT License
+
+---
+
+## Version
+
+Version **2.0**
 
 """)
 
@@ -778,6 +876,16 @@ Computational Chemistry
 
 st.divider()
 
-st.caption(
-    "Quantum Descriptor Toolkit (QDT) | Version 1.0 | © 2026 Sania Ismaeel"
-)
+c1, c2, c3 = st.columns(3)
+
+with c1:
+
+    st.caption("Quantum Descriptor Toolkit")
+
+with c2:
+
+    st.caption("Version 2.0")
+
+with c3:
+
+    st.caption("© 2026 Sania Ismaeel")
