@@ -113,12 +113,14 @@ def electron_donating_power(ip, ea):
     return numerator / denominator
 
 
+
 def net_electrophilicity(w_plus, w_minus):
 
     if w_plus is None or w_minus is None:
         return None
 
-    return w_plus - w_minus
+    return w_plus + w_minus
+
 
 
 # =========================================================

@@ -348,6 +348,7 @@ DESCRIPTOR_INFO = {
     "reference_id": "gazquez2007"
 },
 
+
 # ==========================================================
 # NET ELECTROPHILICITY
 # ==========================================================
@@ -356,22 +357,20 @@ DESCRIPTOR_INFO = {
 
     "name": "Net Electrophilicity",
 
-    "symbol": "Δω",
+    "symbol": "Δω±",
 
-    "equation": "Δω = ω+ − ω−",
+    "equation": "Δω± = ω+ + ω−",
 
     "unit": "eV",
 
     "definition":
-        "Difference between the electron accepting power and the electron donating power of a molecular system.",
+        "Sum of the electron-accepting power and electron-donating power of a molecular system, representing its overall electron acceptance and donation capacity.",
 
     "interpretation":
-        "Positive values indicate that the molecule has a greater tendency to accept electrons than to donate them, whereas negative values indicate a greater tendency to donate electrons than to accept them.",
+        "Higher values indicate a greater combined electron-accepting and electron-donating power. The descriptor should be interpreted alongside ω+ and ω− to distinguish the two contributions.",
 
     "remarks":
-        "Useful for comparing the relative electron-accepting and electron-donating characteristics of molecular systems.",
+        "Defined according to the net electrophilicity formulation proposed by Chattaraj and co-workers. Both electron-accepting and electron-donating powers are expressed as positive quantities in this definition.",
 
     "reference_id": "gazquez2007"
-}
-
 }
